@@ -65,13 +65,22 @@ export default function ProductsPage() {
 
   // Categories & units
   const categories = [
-    "Fruits",
+    "Fruits De Saison",
     "Légumes",
-    "Confitures",
-    "Jus",
-    "Miels",
-    "Autres",
+    "Tomates",
+    "Épicerie Fine",
+    "Jus de Fruits",
+    "Agrumes",
+    "Salades",
+    "Herbes Aromatiques",
+    "Fruits Rouges",
+    "Fruits Exotiques",
+    "Fruits Coupés",
+    "Fruits Secs",
+    "Produits Laitiers",
+    "Produits Alimentaires Variés",
   ];
+
   const units = ["500g", "1kg", "pièce"];
 
   // ----- Handlers -----

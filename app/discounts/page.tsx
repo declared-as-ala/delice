@@ -62,8 +62,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+interface DiscountFormProps {
+  discount?: any;
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
 // Form component for creating/editing discounts
-const DiscountForm = ({ discount, isOpen, onClose, onSuccess }) => {
+const DiscountForm = ({
+  discount,
+  isOpen,
+  onClose,
+  onSuccess,
+}: DiscountFormProps) => {
   const [formData, setFormData] = useState({
     code: discount?.code || "",
     type: discount?.type || "percentage",
@@ -81,14 +93,14 @@ const DiscountForm = ({ discount, isOpen, onClose, onSuccess }) => {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: (data) => {
+    mutationFn: (data: any) => {
       if (discount?._id) {
         return discountService.update(discount._id, data);
       }
       return discountService.create(data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(["discounts"]);
+      queryClient.invalidateQueries({ queryKey: ["discounts"] });
       onSuccess();
       onClose();
       setFormData({
@@ -101,12 +113,12 @@ const DiscountForm = ({ discount, isOpen, onClose, onSuccess }) => {
         usageLimit: "",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Error saving discount:", error);
     },
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     const submitData = {
@@ -282,7 +294,7 @@ const DiscountForm = ({ discount, isOpen, onClose, onSuccess }) => {
 export default function DiscountPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [selectedDiscount, setSelectedDiscount] = useState(null);
+  const [selectedDiscount, setSelectedDiscount] = useState<any>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [filterType, setFilterType] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -301,21 +313,22 @@ export default function DiscountPage() {
 
   // Delete mutation
   const deleteMutation = useMutation({
-    mutationFn: (id) => discountService.delete(id),
+    mutationFn: (id: string) => discountService.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries(["discounts"]);
+      queryClient.invalidateQueries({ queryKey: ["discounts"] });
     },
   });
 
   // Toggle active status
   const toggleActiveMutation = useMutation({
-    mutationFn: ({ id, active }) => discountService.update(id, { active }),
+    mutationFn: ({ id, active }: { id: string; active: boolean }) =>
+      discountService.update(id, { active }),
     onSuccess: () => {
-      queryClient.invalidateQueries(["discounts"]);
+      queryClient.invalidateQueries({ queryKey: ["discounts"] });
     },
   });
 
-  const handleDelete = (discount) => {
+  const handleDelete = (discount: any) => {
     if (
       window.confirm(
         `Êtes-vous sûr de vouloir supprimer la remise "${discount.code}" ?`
@@ -325,33 +338,33 @@ export default function DiscountPage() {
     }
   };
 
-  const handleToggleActive = (discount) => {
+  const handleToggleActive = (discount: any) => {
     toggleActiveMutation.mutate({
       id: discount._id,
       active: !discount.active,
     });
   };
 
-  const copyToClipboard = (code) => {
+  const copyToClipboard = (code: string) => {
     navigator.clipboard.writeText(code);
     // You could add a toast notification here
   };
 
-  const formatDiscount = (discount) => {
+  const formatDiscount = (discount: any) => {
     return discount.type === "percentage"
       ? `${discount.discount}%`
       : `€${discount.discount.toFixed(2)}`;
   };
 
-  const isExpired = (validTo) => {
+  const isExpired = (validTo: string | Date) => {
     return validTo && new Date(validTo) < new Date();
   };
 
-  const isNotYetActive = (validFrom) => {
+  const isNotYetActive = (validFrom: string | Date) => {
     return validFrom && new Date(validFrom) > new Date();
   };
 
-  const getStatusBadge = (discount) => {
+  const getStatusBadge = (discount: any) => {
     if (!discount.active) {
       return <Badge variant="secondary">Inactive</Badge>;
     }
@@ -374,7 +387,7 @@ export default function DiscountPage() {
   // Filter discounts - Fixed data extraction
   const discounts = discountsData?.data?.data || []; // The discounts array is in data.data
 
-  const filteredDiscounts = discounts.filter((discount) => {
+  const filteredDiscounts = discounts.filter((discount: any) => {
     if (filterType !== "all" && discount.type !== filterType) return false;
     if (filterStatus === "active" && !discount.active) return false;
     if (filterStatus === "inactive" && discount.active) return false;
@@ -385,9 +398,13 @@ export default function DiscountPage() {
 
   const stats = {
     total: discounts.length,
-    active: discounts.filter((d) => d.active && !isExpired(d.validTo)).length,
-    expired: discounts.filter((d) => isExpired(d.validTo)).length,
-    used: discounts.reduce((sum, d) => sum + (d.usedCount || 0), 0),
+    active: discounts.filter((d: any) => d.active && !isExpired(d.validTo))
+      .length,
+    expired: discounts.filter((d: any) => isExpired(d.validTo)).length,
+    used: discounts.reduce(
+      (sum: number, d: any) => sum + (d.usedCount || 0),
+      0
+    ),
   };
 
   if (error) {
@@ -569,7 +586,7 @@ export default function DiscountPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredDiscounts.map((discount) => (
+                    filteredDiscounts.map((discount: any) => (
                       <TableRow key={discount._id}>
                         <TableCell className="font-mono font-semibold">
                           <div className="flex items-center gap-2">

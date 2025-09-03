@@ -1,6 +1,6 @@
 // hooks/useProductDialogs.ts
 import { useState } from "react";
-import { Product, ProductVariant } from "../types/product.ts";
+import { Product, ProductVariant } from "../types/product";
 
 export const useProductDialogs = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);

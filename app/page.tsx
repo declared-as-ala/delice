@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { DashboardLayout } from "@/components/layout/dashboard-layout";
+import { DashboardLayout } from "@/components/layout/dashboard-layout"; // Import DashboardLayout
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,6 @@ import {
   TrendingDown,
   AlertTriangle,
   Clock,
-  CreditCard,
   ArrowUpRight,
   Activity,
   UserCheck,
@@ -36,13 +35,14 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
-  PieChart as RechartsPieChart,
+  PieChart,
+  Pie,
   Cell,
   AreaChart,
   Area,
-  Pie,
 } from "recharts";
 
+// Define colors for charts
 const COLORS = [
   "#3b82f6",
   "#10b981",
@@ -54,13 +54,63 @@ const COLORS = [
   "#f97316",
 ];
 
+// Type definitions
+interface TransformFunction<T, R> {
+  (item: T): R | null;
+}
+
+interface StatsData {
+  totalRevenue?: number;
+  totalOrders?: number;
+  totalCustomers?: number;
+  totalProducts?: number;
+  topProducts?: Array<{
+    name: string;
+    totalQty: number;
+  }>;
+  topCustomers?: Array<{
+    _id: string;
+    fullName: string;
+    spent: number;
+    orders: number;
+  }>;
+}
+
+interface HourlyOrderItem {
+  _id: number;
+  count: number;
+}
+
+interface PaymentMethodItem {
+  _id: string;
+  revenue: number;
+}
+
+interface MonthlyRevenueItem {
+  _id: string;
+  revenue: number;
+}
+
+interface CustomerGrowthItem {
+  _id: string;
+  count: number;
+}
+
+interface ProductItem {
+  name: string;
+  totalQty: number;
+}
+
 // Safe data transformation helper
-const safeTransform = (data, transformer) => {
+const safeTransform = <T, R>(
+  data: any,
+  transformer: TransformFunction<T, R>
+): R[] => {
   try {
     if (!data || !Array.isArray(data)) return [];
     return data
       .map(transformer)
-      .filter((item) => item !== null && item !== undefined);
+      .filter((item): item is R => item !== null && item !== undefined);
   } catch (error) {
     console.error("Data transformation error:", error);
     return [];
@@ -68,17 +118,30 @@ const safeTransform = (data, transformer) => {
 };
 
 // Safe array access
-const ensureArray = (data) => {
+const ensureArray = (data: any): any[] => {
   return Array.isArray(data) ? data : [];
 };
 
 // Safe number formatting
-const safeNumber = (value, defaultValue = 0) => {
+const safeNumber = (value: any, defaultValue: number = 0): number => {
   const num = Number(value);
   return isNaN(num) ? defaultValue : num;
 };
 
 // PDF Download Component
+interface PDFDownloadButtonProps {
+  statsData: StatsData;
+  totalRevenue: number;
+  totalOrders: number;
+  totalCustomers: number;
+  activeCustomers: number;
+  monthlyData: Array<{ month: string; revenue: number }>;
+  hourlyOrders: Array<{ hour: string; orders: number }>;
+  paymentMethods: Array<{ method: string; amount: number }>;
+  topProducts: Array<{ category: string; sales: number }>;
+  customerGrowthData: Array<{ month: string; newCustomers: number }>;
+}
+
 const PDFDownloadButton = ({
   statsData,
   totalRevenue,
@@ -90,7 +153,7 @@ const PDFDownloadButton = ({
   paymentMethods,
   topProducts,
   customerGrowthData,
-}) => {
+}: PDFDownloadButtonProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
 
   const generatePDF = async () => {
@@ -98,7 +161,7 @@ const PDFDownloadButton = ({
 
     try {
       // Dynamic import to avoid SSR issues
-      const jsPDF = (await import("jspdf")).default;
+      const { default: jsPDF } = await import("jspdf");
 
       const pdf = new jsPDF("p", "mm", "a4");
       const pageWidth = pdf.internal.pageSize.getWidth();
@@ -107,7 +170,7 @@ const PDFDownloadButton = ({
 
       // Helper function to add page break if needed
       let currentY = margin;
-      const addPageBreakIfNeeded = (height) => {
+      const addPageBreakIfNeeded = (height: number): boolean => {
         if (currentY + height > pageHeight - margin) {
           pdf.addPage();
           currentY = margin;
@@ -118,7 +181,7 @@ const PDFDownloadButton = ({
 
       // Header
       pdf.setFontSize(24);
-      pdf.setTextColor(59, 130, 246); // Blue color
+      pdf.setTextColor(59, 130, 246);
       pdf.text("Rapport d'Analyse E-commerce", margin, currentY);
       currentY += 15;
 
@@ -171,29 +234,28 @@ const PDFDownloadButton = ({
       pdf.text("Indicateurs Clés de Performance", margin, currentY);
       currentY += 15;
 
-      // Draw KPI boxes
       const kpiData = [
         {
           label: "Chiffre d'affaires",
           value: `€${totalRevenue.toLocaleString("fr-FR", {
             minimumFractionDigits: 2,
           })}`,
-          color: [34, 197, 94],
+          color: [34, 197, 94] as [number, number, number],
         },
         {
           label: "Total Commandes",
           value: totalOrders.toLocaleString("fr-FR"),
-          color: [59, 130, 246],
+          color: [59, 130, 246] as [number, number, number],
         },
         {
           label: "Clients Actifs",
           value: activeCustomers.toLocaleString("fr-FR"),
-          color: [139, 92, 246],
+          color: [139, 92, 246] as [number, number, number],
         },
         {
           label: "Total Clients",
           value: totalCustomers.toLocaleString("fr-FR"),
-          color: [249, 115, 22],
+          color: [249, 115, 22] as [number, number, number],
         },
       ];
 
@@ -204,20 +266,18 @@ const PDFDownloadButton = ({
         const x = margin + (index % 2) * (boxWidth + 10);
         const y = currentY + Math.floor(index / 2) * (boxHeight + 10);
 
-        // Draw colored border
         pdf.setDrawColor(...kpi.color);
         pdf.setLineWidth(0.5);
         pdf.rect(x, y, boxWidth, boxHeight);
 
-        // Add text
         pdf.setTextColor(0, 0, 0);
         pdf.setFontSize(10);
         pdf.text(kpi.label, x + 5, y + 8);
 
         pdf.setFontSize(14);
-        pdf.setFont(undefined, "bold");
+        pdf.setFont("helvetica", "bold");
         pdf.text(kpi.value, x + 5, y + 18);
-        pdf.setFont(undefined, "normal");
+        pdf.setFont("helvetica", "normal");
       });
 
       currentY += 60;
@@ -286,7 +346,7 @@ const PDFDownloadButton = ({
       }
 
       // Footer
-      const totalPages = pdf.internal.getNumberOfPages();
+      const totalPages = pdf.getNumberOfPages();
       for (let i = 1; i <= totalPages; i++) {
         pdf.setPage(i);
         pdf.setFontSize(8);
@@ -298,7 +358,6 @@ const PDFDownloadButton = ({
         );
       }
 
-      // Save the PDF
       const fileName = `analytics-report-${
         new Date().toISOString().split("T")[0]
       }.pdf`;
@@ -346,7 +405,6 @@ export default function DashboardPage() {
     refetchInterval: 30000,
     retry: 3,
   });
-  
 
   const { data: recentOrders } = useQuery({
     queryKey: ["recent-orders"],
@@ -398,7 +456,7 @@ export default function DashboardPage() {
   });
 
   // Extract the correct data structure with proper fallbacks
-  const statsData = stats?.data?.stats || {};
+  const statsData: StatsData = stats?.data?.stats || {};
   const totalProducts = safeNumber(statsData?.totalProducts, 0);
   const customerActivityData =
     customerActivity?.data?.data || customerActivity?.data || {};
@@ -421,7 +479,10 @@ export default function DashboardPage() {
   );
 
   // Transform all data with complete safety
-  const hourlyOrders = safeTransform(ordersHourlyData, (item) => {
+  const hourlyOrders = safeTransform<
+    HourlyOrderItem,
+    { hour: string; orders: number }
+  >(ordersHourlyData, (item) => {
     if (
       !item ||
       typeof item._id === "undefined" ||
@@ -435,7 +496,10 @@ export default function DashboardPage() {
     };
   });
 
-  const paymentMethods = safeTransform(paymentMethodsData, (item) => {
+  const paymentMethods = safeTransform<
+    PaymentMethodItem,
+    { method: string; amount: number }
+  >(paymentMethodsData, (item) => {
     if (!item || !item._id || typeof item.revenue === "undefined") {
       return null;
     }
@@ -450,7 +514,10 @@ export default function DashboardPage() {
     };
   });
 
-  const monthlyData = safeTransform(monthlyRevenueData, (item) => {
+  const monthlyData = safeTransform<
+    MonthlyRevenueItem,
+    { month: string; revenue: number }
+  >(monthlyRevenueData, (item) => {
     if (!item || !item._id || typeof item.revenue === "undefined") {
       return null;
     }
@@ -460,25 +527,23 @@ export default function DashboardPage() {
     };
   });
 
-  // Use topProducts from statsData with proper validation
-  const topProducts = safeTransform(
-    ensureArray(statsData?.topProducts).slice(0, 5),
-    (product) => {
-      if (
-        !product ||
-        !product.name ||
-        typeof product.totalQty === "undefined"
-      ) {
-        return null;
-      }
-      return {
-        category: product.name,
-        sales: safeNumber(product.totalQty, 0),
-      };
+  const topProducts = safeTransform<
+    ProductItem,
+    { category: string; sales: number }
+  >(ensureArray(statsData?.topProducts).slice(0, 5), (product) => {
+    if (!product || !product.name || typeof product.totalQty === "undefined") {
+      return null;
     }
-  );
+    return {
+      category: product.name,
+      sales: safeNumber(product.totalQty, 0),
+    };
+  });
 
-  const customerGrowthData = safeTransform(customerGrowthDataRaw, (item) => {
+  const customerGrowthData = safeTransform<
+    CustomerGrowthItem,
+    { month: string; newCustomers: number }
+  >(customerGrowthDataRaw, (item) => {
     if (!item || !item._id || typeof item.count === "undefined") {
       return null;
     }
@@ -513,16 +578,15 @@ export default function DashboardPage() {
       isPositive: true,
     },
     {
-    title: "Total Produits",
-    value: totalProducts.toLocaleString("fr-FR"),
-    icon: Package, // Use the Package icon
-    color: "text-purple-600 dark:text-purple-400",
-    bgColor: "bg-purple-50 dark:bg-purple-950/20",
-    borderColor: "border-purple-200 dark:border-purple-800",
-    growth: "+15.3%",
-    isPositive: true,
-  },
-
+      title: "Total Produits",
+      value: totalProducts.toLocaleString("fr-FR"),
+      icon: Package,
+      color: "text-purple-600 dark:text-purple-400",
+      bgColor: "bg-purple-50 dark:bg-purple-950/20",
+      borderColor: "border-purple-200 dark:border-purple-800",
+      growth: "+15.3%",
+      isPositive: true,
+    },
     {
       title: "Total Utilisateurs",
       value: totalCustomers.toLocaleString("fr-FR"),
@@ -572,7 +636,7 @@ export default function DashboardPage() {
   return (
     <DashboardLayout title="Tableau de bord">
       <div className="p-6 space-y-8">
-        {/* Header with PDF Download only */}
+        {/* Header with PDF Download */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">
@@ -681,10 +745,12 @@ export default function DashboardPage() {
                         fontSize={12}
                         tickLine={false}
                         axisLine={false}
-                        tickFormatter={(value) => `€${value.toLocaleString()}`}
+                        tickFormatter={(value: number) =>
+                          `€${value.toLocaleString()}`
+                        }
                       />
                       <Tooltip
-                        formatter={(value) => [
+                        formatter={(value: number) => [
                           `€${value.toLocaleString()}`,
                           "Chiffre d'affaires",
                         ]}
@@ -738,7 +804,7 @@ export default function DashboardPage() {
                       />
                       <YAxis fontSize={12} tickLine={false} axisLine={false} />
                       <Tooltip
-                        formatter={(value) => [value, "Commandes"]}
+                        formatter={(value: number) => [value, "Commandes"]}
                         labelStyle={{ color: "#374151" }}
                         contentStyle={{
                           backgroundColor: "#ffffff",
@@ -777,7 +843,7 @@ export default function DashboardPage() {
                 <>
                   <div className="h-[250px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <RechartsPieChart>
+                      <PieChart>
                         <Pie
                           data={topProducts}
                           cx="50%"
@@ -794,12 +860,12 @@ export default function DashboardPage() {
                           ))}
                         </Pie>
                         <Tooltip
-                          formatter={(value) => [
+                          formatter={(value: number) => [
                             value.toLocaleString(),
                             "Quantité",
                           ]}
                         />
-                      </RechartsPieChart>
+                      </PieChart>
                     </ResponsiveContainer>
                   </div>
                   <div className="space-y-2 mt-4">
@@ -811,7 +877,9 @@ export default function DashboardPage() {
                         <div className="flex items-center gap-2">
                           <div
                             className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: COLORS[index] }}
+                            style={{
+                              backgroundColor: COLORS[index % COLORS.length],
+                            }}
                           />
                           <span className="truncate">{category.category}</span>
                         </div>
@@ -846,7 +914,7 @@ export default function DashboardPage() {
                     const percentage =
                       totalAmount > 0
                         ? ((method.amount / totalAmount) * 100).toFixed(1)
-                        : 0;
+                        : "0";
 
                     return (
                       <div key={method.method} className="space-y-2">
@@ -933,7 +1001,6 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {/* Customer Growth Mini Chart */}
                 <div className="mt-6">
                   <div className="text-sm font-medium mb-3">
                     Croissance (3 derniers mois)
@@ -956,7 +1023,10 @@ export default function DashboardPage() {
                             tickLine={false}
                           />
                           <Tooltip
-                            formatter={(value) => [value, "Nouveaux clients"]}
+                            formatter={(value: number) => [
+                              value,
+                              "Nouveaux clients",
+                            ]}
                           />
                         </LineChart>
                       </ResponsiveContainer>
@@ -974,7 +1044,7 @@ export default function DashboardPage() {
 
         {/* Bottom Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Recent Orders / Top Customers */}
+          {/* Top Customers */}
           <Card>
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
@@ -991,7 +1061,7 @@ export default function DashboardPage() {
                 {ensureArray(statsData?.topCustomers).length > 0 ? (
                   ensureArray(statsData?.topCustomers)
                     .slice(0, 5)
-                    .map((customer, index) => (
+                    .map((customer: any, index: number) => (
                       <div
                         key={customer?._id || index}
                         className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
@@ -1039,7 +1109,6 @@ export default function DashboardPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Low Stock Alert */}
               {ensureArray(lowStock?.data?.data || lowStock?.data).length >
               0 ? (
                 <Alert className="border-orange-200 bg-orange-50 dark:bg-orange-950/20">
@@ -1074,7 +1143,6 @@ export default function DashboardPage() {
                 </Alert>
               )}
 
-              {/* Low Stock Items */}
               {ensureArray(lowStock?.data?.data || lowStock?.data).length >
                 0 && (
                 <div className="space-y-3">
@@ -1083,7 +1151,7 @@ export default function DashboardPage() {
                   </div>
                   {ensureArray(lowStock?.data?.data || lowStock?.data)
                     .slice(0, 3)
-                    .map((product, index) => (
+                    .map((product: any, index: number) => (
                       <div
                         key={product?.productId || index}
                         className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
@@ -1109,7 +1177,6 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {/* Quick Actions */}
               <Separator />
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" variant="outline" className="gap-2">
@@ -1142,7 +1209,7 @@ export default function DashboardPage() {
               <div className="space-y-0">
                 {ensureArray(recentOrders?.data?.data || recentOrders?.data)
                   .slice(0, 5)
-                  .map((order, index) => (
+                  .map((order: any, index: number) => (
                     <div
                       key={order?._id || index}
                       className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors border-b last:border-b-0"

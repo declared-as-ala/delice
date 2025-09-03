@@ -312,8 +312,8 @@ export default function CustomersPage() {
                   >
                     Annuler
                   </Button>
-                  <Button type="submit" disabled={updateMutation.isLoading}>
-                    {updateMutation.isLoading
+                  <Button type="submit" disabled={updateMutation.isPending}>
+                    {updateMutation.isPending
                       ? "Mise à jour..."
                       : "Mettre à jour"}
                   </Button>
@@ -395,9 +395,9 @@ export default function CustomersPage() {
                 onClick={() =>
                   selectedCustomer && deleteMutation.mutate(selectedCustomer.id)
                 }
-                disabled={deleteMutation.isLoading}
+                disabled={deleteMutation.isPending}
               >
-                {deleteMutation.isLoading ? "Suppression..." : "Supprimer"}
+                {deleteMutation.isPending ? "Suppression..." : "Supprimer"}
               </Button>
             </DialogFooter>
           </DialogContent>

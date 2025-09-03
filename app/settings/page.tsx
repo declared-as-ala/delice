@@ -20,7 +20,7 @@ export default function SettingsPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: profileData, isLoading } = useQuery({
+  const { data: profileData, isPending } = useQuery({
     queryKey: ["admin-profile"],
     queryFn: () => authService.getProfile(),
     enabled: !!admin,
@@ -103,7 +103,7 @@ export default function SettingsPage() {
     (e.target as HTMLFormElement).reset();
   };
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <DashboardLayout title="Paramètres">
         <div className="p-6">
@@ -186,10 +186,10 @@ export default function SettingsPage() {
 
                 <Button
                   type="submit"
-                  disabled={updateProfileMutation.isLoading}
+                  disabled={updateProfileMutation.isPending}
                   className="w-full"
                 >
-                  {updateProfileMutation.isLoading ? (
+                  {updateProfileMutation.isPending ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                       Mise à jour...
@@ -275,11 +275,11 @@ export default function SettingsPage() {
 
                 <Button
                   type="submit"
-                  disabled={updateProfileMutation.isLoading}
+                  disabled={updateProfileMutation.isPending}
                   className="w-full"
                   variant="outline"
                 >
-                  {updateProfileMutation.isLoading ? (
+                  {updateProfileMutation.isPending ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
                       Mise à jour...

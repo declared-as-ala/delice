@@ -371,7 +371,7 @@ export default function OrdersPage() {
                                   onCheckedChange={() =>
                                     handleDeliveryToggle(order)
                                   }
-                                  disabled={toggleDeliveryMutation.isLoading}
+                                  disabled={toggleDeliveryMutation.isPending}
                                 />
                                 <span className="text-xs">
                                   {order.isDelivered ? "Livré" : "En cours"}
@@ -447,7 +447,8 @@ export default function OrdersPage() {
                         {Array.from(
                           { length: Math.min(5, pagination.pages) },
                           (_, i) => {
-                            let pageNum;
+                            let pageNum: number = 1; // Initialize with explicit type and default value
+
                             if (pagination.pages <= 5) {
                               pageNum = i + 1;
                             } else if (pagination.page <= 3) {
@@ -793,11 +794,11 @@ export default function OrdersPage() {
               <Button
                 onClick={handleStatusUpdate}
                 disabled={
-                  updateStatusMutation.isLoading ||
+                  updateStatusMutation.isPending ||
                   newStatus === selectedOrder?.status
                 }
               >
-                {updateStatusMutation.isLoading
+                {updateStatusMutation.isPending
                   ? "Mise à jour..."
                   : "Mettre à jour"}
               </Button>
@@ -825,9 +826,9 @@ export default function OrdersPage() {
                 onClick={() =>
                   selectedOrder && deleteMutation.mutate(selectedOrder._id)
                 }
-                disabled={deleteMutation.isLoading}
+                disabled={deleteMutation.isPending}
               >
-                {deleteMutation.isLoading ? "Suppression..." : "Supprimer"}
+                {deleteMutation.isPending ? "Suppression..." : "Supprimer"}
               </Button>
             </DialogFooter>
           </DialogContent>
