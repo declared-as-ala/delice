@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -13,10 +13,10 @@ import {
   LogOut,
   Percent,
   X,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/auth-store";
-import { authService } from "@/lib/api";
 import { useState } from "react";
 import toast from "react-hot-toast";
 
@@ -41,20 +41,41 @@ export function Sidebar({
   onClose,
 }: SidebarProps) {
   const pathname = usePathname();
-  const { clearAuth, admin } = useAuthStore();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const router = useRouter();
+  const { logout, admin, isLoggingOut: storeLoggingOut } = useAuthStore();
+  const [localLoggingOut, setLocalLoggingOut] = useState(false);
+
+  // Use either store state or local state for loading
+  const isLoggingOut = storeLoggingOut || localLoggingOut;
 
   const handleLogout = async () => {
-    setIsLoggingOut(true);
+    if (isLoggingOut) return; // Prevent multiple clicks
+
+    setLocalLoggingOut(true);
+
     try {
-      await authService.logout();
-      clearAuth();
-      toast.success("Déconnexion réussie");
-      window.location.href = "/login";
+      // Show loading toast
+      const loadingToast = toast.loading("Déconnexion en cours...");
+
+      // Use the store logout method
+      await logout();
+
+      // Dismiss loading toast
+      toast.dismiss(loadingToast);
+
+      // Show success message
+      toast.success("Déconnecté avec succès");
+
+      // Redirect using Next.js router
+      router.push("/login?message=logged-out");
     } catch (error) {
+      console.error("Logout error:", error);
       toast.error("Erreur lors de la déconnexion");
+
+      // Still redirect to login even if logout failed
+      router.push("/login");
     } finally {
-      setIsLoggingOut(false);
+      setLocalLoggingOut(false);
     }
   };
 
@@ -86,6 +107,7 @@ export function Sidebar({
             size="sm"
             onClick={onClose}
             className="absolute top-4 right-4"
+            disabled={isLoggingOut}
           >
             <X className="w-4 h-4" />
           </Button>
@@ -105,7 +127,9 @@ export function Sidebar({
                 "flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                 isActive
                   ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent",
+                // Disable navigation during logout
+                isLoggingOut && "pointer-events-none opacity-50"
               )}
             >
               <item.icon className="w-4 h-4" />
@@ -120,7 +144,7 @@ export function Sidebar({
         <div className="flex items-center space-x-3 mb-3 p-2 rounded-lg bg-accent/50">
           <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
             <span className="text-primary-foreground font-medium text-xs">
-              {admin?.name?.charAt(0) || "A"}
+              {admin?.name?.charAt(0)?.toUpperCase() || "A"}
             </span>
           </div>
           <div className="flex-1 min-w-0">
@@ -137,8 +161,17 @@ export function Sidebar({
           disabled={isLoggingOut}
           className="w-full"
         >
-          <LogOut className="w-4 h-4 mr-2" />
-          {isLoggingOut ? "Déconnexion..." : "Déconnexion"}
+          {isLoggingOut ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Déconnexion...
+            </>
+          ) : (
+            <>
+              <LogOut className="w-4 h-4 mr-2" />
+              Déconnexion
+            </>
+          )}
         </Button>
       </div>
     </aside>

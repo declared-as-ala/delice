@@ -1,12 +1,46 @@
-import axios from "axios";
+import axios, { AxiosError, AxiosResponse } from "axios";
 import { useAuthStore } from "@/stores/auth-store";
 import toast from "react-hot-toast";
 
-const API_BASE_URL = "https://backend-r0vc.onrender.com";
+// Types for better type safety
+interface ApiError {
+  message: string;
+  error?: string;
+  code?: string;
+}
+
+interface LoginResponse {
+  success: boolean;
+  accessToken: string;
+  refreshToken: string;
+  admin: {
+    id: string;
+    email: string;
+    name: string;
+    role: string;
+    active: boolean;
+    createdAt: string;
+  };
+}
+
+interface RefreshResponse {
+  success: boolean;
+  accessToken: string;
+}
+
+interface LogoutResponse {
+  success: boolean;
+  message: string;
+}
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
 // Request interceptor to add auth token
@@ -18,66 +52,209 @@ apiClient.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error: AxiosError) => {
+    console.error("Request interceptor error:", error);
+    return Promise.reject(error);
+  }
 );
 
-// Response interceptor for token refresh
+// Response interceptor for token refresh and error handling
+// Response interceptor for token refresh and error handling
 apiClient.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
+  (response: AxiosResponse) => response,
+  async (error: AxiosError<ApiError>) => {
+    const originalRequest = error.config as any;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Handle network errors
+    if (!error.response) {
+      toast.error("Network error. Please check your connection.");
+      return Promise.reject(error);
+    }
+
+    const { status, data } = error.response;
+
+    // Handle 401 errors (token expiry) - but NOT for login endpoint
+    if (
+      status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url?.includes("/login")
+    ) {
       originalRequest._retry = true;
 
-      const { refreshToken, clearAuth } = useAuthStore.getState();
+      const { refreshToken, clearAuth, setTokens } = useAuthStore.getState();
 
       if (refreshToken) {
         try {
-          const response = await axios.post(
+          const response = await axios.post<RefreshResponse>(
             `${API_BASE_URL}/api/admin/auth/refresh`,
-            { refreshToken }
+            { refreshToken },
+            {
+              headers: { "Content-Type": "application/json" },
+              timeout: 5000,
+            }
           );
 
           const { accessToken: newAccessToken } = response.data;
-          useAuthStore.setState({ accessToken: newAccessToken });
 
-          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+          // Update store with new token
+          setTokens(newAccessToken, refreshToken);
+
+          // Retry original request with new token
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+          }
+
           return apiClient(originalRequest);
         } catch (refreshError) {
+          console.error("Token refresh failed:", refreshError);
           clearAuth();
-          window.location.href = "/login";
+
+          // Redirect to login page
+          if (typeof window !== "undefined") {
+            window.location.href = "/login";
+          }
+
           return Promise.reject(refreshError);
         }
       } else {
         clearAuth();
-        window.location.href = "/login";
+        if (typeof window !== "undefined") {
+          window.location.href = "/login";
+        }
       }
+    }
+
+    // Handle other HTTP errors with user-friendly messages
+    const errorMessage = data?.message || getErrorMessage(status);
+
+    // Don't show toast for login errors (401) or certain other errors that are handled by components
+    if (
+      status !== 404 &&
+      status !== 422 &&
+      !(status === 401 && originalRequest.url?.includes("/login"))
+    ) {
+      toast.error(errorMessage);
     }
 
     return Promise.reject(error);
   }
 );
 
+// Helper function to get user-friendly error messages
+const getErrorMessage = (status: number): string => {
+  switch (status) {
+    case 400:
+      return "Invalid request. Please check your input.";
+    case 401:
+      return "Authentication required. Please login.";
+    case 403:
+      return "Access denied. You don't have permission.";
+    case 404:
+      return "Resource not found.";
+    case 409:
+      return "Conflict. Resource already exists.";
+    case 422:
+      return "Validation failed. Please check your input.";
+    case 500:
+      return "Server error. Please try again later.";
+    case 503:
+      return "Service unavailable. Please try again later.";
+    default:
+      return "An unexpected error occurred.";
+  }
+};
+
 export default apiClient;
 
 // ========================= AUTH SERVICE =========================
 export const authService = {
-  login: (email: string, password: string) =>
-    apiClient.post("/api/admin/auth/login", { email, password }),
+  login: async (email: string, password: string): Promise<LoginResponse> => {
+    try {
+      const response = await apiClient.post<LoginResponse>(
+        "/api/admin/auth/login",
+        {
+          email: email.trim().toLowerCase(),
+          password,
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 
-  logout: () => apiClient.post("/api/admin/auth/logout"),
+  logout: async (): Promise<LogoutResponse> => {
+    try {
+      const { refreshToken } = useAuthStore.getState();
 
-  refresh: (refreshToken: string) =>
-    apiClient.post("/api/admin/auth/refresh", { refreshToken }),
+      // Always try to logout even without refresh token
+      const response = await apiClient.post<LogoutResponse>(
+        "/api/admin/auth/logout",
+        refreshToken ? { refreshToken } : {}
+      );
 
-  getProfile: () => apiClient.get("/api/admin/auth/me"),
+      return response.data;
+    } catch (error) {
+      // Even if logout fails on server, clear local auth
+      console.warn("Logout request failed, clearing local auth:", error);
+      throw error;
+    }
+  },
 
-  // Add this method for updating name, email, and password
-  updateProfile: (data: { name?: string; email?: string; password?: string }) =>
-    apiClient.put("/api/admin/auth/update-profile", data),
+  refresh: async (refreshToken: string): Promise<RefreshResponse> => {
+    try {
+      const response = await apiClient.post<RefreshResponse>(
+        "/api/admin/auth/refresh",
+        {
+          refreshToken,
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  getProfile: async () => {
+    try {
+      const response = await apiClient.get("/api/admin/auth/me");
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updateProfile: async (data: {
+    name?: string;
+    email?: string;
+    password?: string;
+  }) => {
+    try {
+      // Clean the data before sending
+      const cleanData: any = {};
+
+      if (data.name?.trim()) {
+        cleanData.name = data.name.trim();
+      }
+
+      if (data.email?.trim()) {
+        cleanData.email = data.email.trim().toLowerCase();
+      }
+
+      if (data.password?.trim()) {
+        cleanData.password = data.password.trim();
+      }
+
+      const response = await apiClient.put(
+        "/api/admin/auth/update-profile",
+        cleanData
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
-
 // ========================= CUSTOMER SERVICE =========================
 export const customerService = {
   getAll: (page = 1, limit = 10, search = "") =>
