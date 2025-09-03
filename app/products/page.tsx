@@ -44,7 +44,6 @@ export default function ProductsPage() {
         searchTerm,
         getApiFilterValue(categoryFilter)
       ),
-    keepPreviousData: true, // keeps previous page data while loading new page
   });
 
   // Derived data

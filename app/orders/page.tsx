@@ -76,7 +76,6 @@ export default function OrdersPage() {
         paymentFilter === "all" ? "" : paymentFilter,
         searchTerm
       ),
-    keepPreviousData: true,
   });
 
   const updateStatusMutation = useMutation({

@@ -41,7 +41,6 @@ export default function CustomersPage() {
   const { data: customersData, isLoading } = useQuery({
     queryKey: ["customers", currentPage, searchTerm],
     queryFn: () => customerService.getAll(currentPage, 10, searchTerm),
-    keepPreviousData: true,
   });
 
   const updateMutation = useMutation({

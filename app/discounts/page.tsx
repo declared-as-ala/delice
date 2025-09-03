@@ -297,7 +297,6 @@ export default function DiscountPage() {
   } = useQuery({
     queryKey: ["discounts", page, search],
     queryFn: () => discountService.getAll(page, 10, search),
-    keepPreviousData: true,
   });
 
   // Delete mutation
