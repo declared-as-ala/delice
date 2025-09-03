@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
+import { useEffect } from "react";
 
 interface Admin {
   id: string;
@@ -333,7 +334,7 @@ export const useAuthActions = () =>
 export const useActivityTracker = () => {
   const updateLastActivity = useAuthStore((state) => state.updateLastActivity);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const events = [
       "mousedown",
       "mousemove",
@@ -359,24 +360,3 @@ export const useActivityTracker = () => {
     };
   }, [updateLastActivity]);
 };
-
-// Check if user is admin
-export const useIsAdmin = () =>
-  useAuthStore(
-    (state) => state.isAuthenticated && state.admin?.role === "admin"
-  );
-
-// Get admin permissions
-export const useAdminPermissions = () =>
-  useAuthStore((state) => {
-    if (!state.isAuthenticated || !state.admin) {
-      return { canRead: false, canWrite: false, canDelete: false };
-    }
-
-    const role = state.admin.role;
-    return {
-      canRead: ["admin", "moderator", "viewer"].includes(role),
-      canWrite: ["admin", "moderator"].includes(role),
-      canDelete: role === "admin",
-    };
-  });
