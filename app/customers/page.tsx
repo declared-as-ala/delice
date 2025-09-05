@@ -143,7 +143,7 @@ export default function CustomersPage() {
         <Card>
           <CardHeader>
             <CardTitle>
-              Liste des clients ({customersData?.data?.total || 0})
+              Liste des clients ({customersData?.data?.pagination?.total|| 0})
             </CardTitle>
           </CardHeader>
           <CardContent>

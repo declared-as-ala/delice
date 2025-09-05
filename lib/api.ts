@@ -33,7 +33,7 @@ interface LogoutResponse {
   message: string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://backend-r0vc.onrender.com";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -296,7 +296,7 @@ export const productService = {
   // ----- Products -----
   getAll: (page = 1, limit = 10, search = "", category = "") =>
     apiClient.get(
-      `/api/products?page=${page}&limit=${limit}&search=${search}&category=${category}`
+      `/api/admin/products?page=${page}&limit=${limit}&search=${search}&category=${category}`
     ),
   getById: (id: string) => apiClient.get(`/api/admin/products/${id}`),
   create: (data: any) => apiClient.post("/api/admin/products", data),

@@ -48,7 +48,7 @@ export default function ProductsPage() {
 
   // Derived data
   const products = productsData?.data?.data || [];
-  const totalItems = productsData?.data?.total || 0;
+  const totalItems = productsData?.data?.pagination?.total || 0;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   // Product mutations

@@ -28,6 +28,8 @@ export default function RootLayout({
       <head>
         <title>Admin Dashboard - Les Délices du Verger</title>
         <meta name="description" content="Administration des Délices du Verger" />
+        {/* Favicon */}
+      <link rel="icon" type="image/png" sizes="500x500" href="/logo.png" />
       </head>
       <body className={inter.className}>
         <QueryClientProvider client={queryClient}>
