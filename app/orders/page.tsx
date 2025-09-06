@@ -48,6 +48,7 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
+  CheckCircle,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { format } from "date-fns";
@@ -93,11 +94,12 @@ export default function OrdersPage() {
     },
   });
 
+  // Updated mutation to handle both delivery and pickup
   const toggleDeliveryMutation = useMutation({
     mutationFn: (id: string) => orderService.toggleDelivery(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
-      toast.success("Statut de livraison mis à jour");
+      toast.success("Statut mis à jour avec succès");
     },
     onError: (error: any) => {
       toast.error(
@@ -190,6 +192,7 @@ export default function OrdersPage() {
     updateStatusMutation.mutate({ id: selectedOrder._id, status: newStatus });
   };
 
+  // Updated function to handle both delivery and pickup toggle
   const handleDeliveryToggle = (order: any) => {
     toggleDeliveryMutation.mutate(order._id);
   };
@@ -295,7 +298,7 @@ export default function OrdersPage() {
                         <TableHead>Montant</TableHead>
                         <TableHead>Statut</TableHead>
                         <TableHead>Paiement</TableHead>
-                        <TableHead>Livraison</TableHead>
+                        <TableHead>Status retrait/livraison</TableHead>
                         <TableHead>Date</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
@@ -364,24 +367,27 @@ export default function OrdersPage() {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            {order.pickupType === "delivery" ? (
-                              <div className="flex items-center gap-2">
-                                <Switch
-                                  checked={order.isDelivered || false}
-                                  onCheckedChange={() =>
-                                    handleDeliveryToggle(order)
-                                  }
-                                  disabled={toggleDeliveryMutation.isPending}
-                                />
+                            {/* Updated delivery/pickup status section */}
+                            <div className="flex items-center gap-2">
+                              <Switch
+                                checked={order.isDelivered || false}
+                                onCheckedChange={() => handleDeliveryToggle(order)}
+                                disabled={toggleDeliveryMutation.isPending}
+                              />
+                              <div className="flex items-center gap-1">
+                                {order.pickupType === "delivery" ? (
+                                  <Truck className="w-3 h-3" />
+                                ) : (
+                                  <Store className="w-3 h-3" />
+                                )}
                                 <span className="text-xs">
-                                  {order.isDelivered ? "Livré" : "En cours"}
+                                  {order.isDelivered 
+                                    ? (order.pickupType === "delivery" ? "Livré" : "Retiré")
+                                    : (order.pickupType === "delivery" ? "En cours" : "En attente")
+                                  }
                                 </span>
                               </div>
-                            ) : (
-                              <Badge variant="secondary" className="text-xs">
-                                Retrait magasin
-                              </Badge>
-                            )}
+                            </div>
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">
                             <div className="flex items-center gap-1">
@@ -447,7 +453,7 @@ export default function OrdersPage() {
                         {Array.from(
                           { length: Math.min(5, pagination.pages) },
                           (_, i) => {
-                            let pageNum: number = 1; // Initialize with explicit type and default value
+                            let pageNum: number = 1;
 
                             if (pagination.pages <= 5) {
                               pageNum = i + 1;
@@ -644,20 +650,45 @@ export default function OrdersPage() {
                         </div>
                       </div>
                     ) : (
-                      <div>
-                        <Label className="text-sm font-medium">
-                          Lieu de retrait
-                        </Label>
-                        <p className="text-sm text-muted-foreground">
-                          <strong>{selectedOrder.pickupLocation?.name}</strong>
-                          <br />
-                          {selectedOrder.pickupLocation?.address}
-                        </p>
-                        {selectedOrder.pickupLocation?.description && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {selectedOrder.pickupLocation.description}
+                      <div className="space-y-3">
+                        <div>
+                          <Label className="text-sm font-medium">
+                            Lieu de retrait
+                          </Label>
+                          <p className="text-sm text-muted-foreground">
+                            <strong>{selectedOrder.pickupLocation?.name}</strong>
+                            <br />
+                            {selectedOrder.pickupLocation?.address}
                           </p>
-                        )}
+                          {selectedOrder.pickupLocation?.description && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {selectedOrder.pickupLocation.description}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Label className="text-sm font-medium">
+                            Statut de retrait
+                          </Label>
+                          <Badge
+                            variant={
+                              selectedOrder.isDelivered
+                                ? "default"
+                                : "secondary"
+                            }
+                          >
+                            <div className="flex items-center gap-1">
+                              {selectedOrder.isDelivered ? (
+                                <CheckCircle className="w-3 h-3" />
+                              ) : (
+                                <Store className="w-3 h-3" />
+                              )}
+                              {selectedOrder.isDelivered
+                                ? "Retiré"
+                                : "En attente de retrait"}
+                            </div>
+                          </Badge>
+                        </div>
                       </div>
                     )}
                   </CardContent>
