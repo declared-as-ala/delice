@@ -46,9 +46,8 @@ export const ProductTable = ({
             <TableHead>Produit</TableHead>
             <TableHead>Catégorie</TableHead>
             <TableHead>Prix min</TableHead>
-            <TableHead>Stock total</TableHead>
             <TableHead>Variants</TableHead>
-            <TableHead>Statut</TableHead>
+            <TableHead>Date de création</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -58,18 +57,15 @@ export const ProductTable = ({
               product.variants?.length > 0
                 ? Math.min(...product.variants.map((v) => v.price))
                 : 0;
-            const totalStock =
-              product.variants?.reduce((acc, v) => acc + (v.stock || 0), 0) ||
-              0;
 
             return (
               <TableRow key={product.id}>
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
-                      {product.image ? (
+                    <div className="w-24 h-20 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
+                      {product.Image ? (
                         <img
-                          src={product.image}
+                          src={product.Image}
                           alt={product.title}
                           className="w-full h-full object-cover"
                         />
@@ -92,11 +88,6 @@ export const ProductTable = ({
                   {minPrice.toFixed(2)}€
                 </TableCell>
                 <TableCell>
-                  <Badge variant={totalStock > 0 ? "default" : "destructive"}>
-                    {totalStock}
-                  </Badge>
-                </TableCell>
-                <TableCell>
                   <div className="flex items-center gap-2">
                     <Badge variant="secondary">
                       {product.variants?.length || 0} variant(s)
@@ -112,9 +103,9 @@ export const ProductTable = ({
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={product.isActive ? "default" : "secondary"}>
-                    {product.isActive ? "Actif" : "Inactif"}
-                  </Badge>
+                  <span className="text-sm text-muted-foreground">
+                    {new Date(product.createdAt).toLocaleDateString('fr-FR')}
+                  </span>
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">

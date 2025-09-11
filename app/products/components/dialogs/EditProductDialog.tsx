@@ -30,7 +30,7 @@ interface EditProductDialogProps {
   isLoading: boolean;
   product: Product | null;
   categories: string[];
-  units: string[];
+  unitTypes: ('weight' | 'piece')[];
   variants: ProductVariant[];
   onAddVariant: () => void;
   onRemoveVariant: (index: number) => void;
@@ -44,7 +44,7 @@ export const EditProductDialog = ({
   isLoading,
   product,
   categories,
-  units,
+  unitTypes,
   variants,
   onAddVariant,
   onRemoveVariant,
@@ -61,23 +61,36 @@ export const EditProductDialog = ({
       description: formData.get("description") as string,
       category: formData.get("category") as string,
       variants: variants.map((variant) => ({
-        id: variant.id,
-        unit: variant.unit,
+        variant_id: variant.variant_id,
+        variant_name: variant.variant_name || "",
         price: variant.price,
-        stock: variant.stock,
-        quantity: variant.quantity || 1,
-        isDefault: variant.isDefault,
+        unit_type: variant.unit_type,
+        grams: variant.grams,
+        options: variant.options || [],
       })),
-      isActive: formData.get("isActive") === "on",
-      image: (formData.get("image") as string) || product.image,
-      tags:
-        (formData.get("tags") as string)
-          ?.split(",")
-          .map((tag) => tag.trim())
-          .filter(Boolean) || [],
+      Image: (formData.get("image") as string) || product.Image,
     };
 
     onSubmit({ id: product.id, data });
+  };
+
+  const addVariantOption = (variantIndex: number) => {
+    const variant = variants[variantIndex];
+    const newOptions = [...(variant.options || []), { name: "", value: "" }];
+    onUpdateVariant(variantIndex, "options", newOptions);
+  };
+
+  const updateVariantOption = (variantIndex: number, optionIndex: number, field: 'name' | 'value', value: string) => {
+    const variant = variants[variantIndex];
+    const newOptions = [...(variant.options || [])];
+    newOptions[optionIndex] = { ...newOptions[optionIndex], [field]: value };
+    onUpdateVariant(variantIndex, "options", newOptions);
+  };
+
+  const removeVariantOption = (variantIndex: number, optionIndex: number) => {
+    const variant = variants[variantIndex];
+    const newOptions = (variant.options || []).filter((_, i) => i !== optionIndex);
+    onUpdateVariant(variantIndex, "options", newOptions);
   };
 
   if (!product) return null;
@@ -129,37 +142,15 @@ export const EditProductDialog = ({
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="edit_image">URL de l'image</Label>
-              <Input
-                id="edit_image"
-                name="image"
-                type="url"
-                placeholder="https://..."
-                defaultValue={product.image}
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit_tags">Tags (séparés par des virgules)</Label>
-              <Input
-                id="edit_tags"
-                name="tags"
-                placeholder="bio, local, frais"
-                defaultValue={product.tags?.join(", ") || ""}
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="edit_isActive"
-              name="isActive"
-              defaultChecked={product.isActive}
-              className="rounded border-gray-300"
+          <div>
+            <Label htmlFor="edit_image">URL de l'image</Label>
+            <Input
+              id="edit_image"
+              name="image"
+              type="url"
+              placeholder="https://..."
+              defaultValue={product.Image}
             />
-            <Label htmlFor="edit_isActive">Produit actif</Label>
           </div>
 
           <div className="space-y-4">
@@ -177,14 +168,14 @@ export const EditProductDialog = ({
             </div>
             <div className="space-y-4">
               {variants.map((variant, index) => (
-                <Card key={variant.id || index}>
+                <Card key={variant.variant_id || index}>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="font-medium">
                         Variant {index + 1}
-                        {variant.id && (
+                        {variant.variant_id && (
                           <Badge variant="outline" className="ml-2 text-xs">
-                            Existant
+                            {variant.variant_id}
                           </Badge>
                         )}
                       </h4>
@@ -197,58 +188,132 @@ export const EditProductDialog = ({
                         <X className="w-4 h-4" />
                       </Button>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <Label>Unité</Label>
-                        <Select
-                          value={variant.unit}
-                          onValueChange={(value) =>
-                            onUpdateVariant(index, "unit", value)
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Unité" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {units.map((unit) => (
-                              <SelectItem key={unit} value={unit}>
-                                {unit}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                    
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label>ID du variant</Label>
+                          <Input
+                            value={variant.variant_id}
+                            onChange={(e) =>
+                              onUpdateVariant(index, "variant_id", e.target.value)
+                            }
+                            placeholder="ex: citron-jaune-1kg"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label>Nom du variant (optionnel)</Label>
+                          <Input
+                            value={variant.variant_name || ""}
+                            onChange={(e) =>
+                              onUpdateVariant(index, "variant_name", e.target.value)
+                            }
+                            placeholder="ex: Citron Jaune"
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <Label>Prix (€)</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={variant.price}
-                          onChange={(e) =>
-                            onUpdateVariant(
-                              index,
-                              "price",
-                              parseFloat(e.target.value) || 0
-                            )
-                          }
-                          required
-                        />
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <Label>Type d'unité</Label>
+                          <Select
+                            value={variant.unit_type}
+                            onValueChange={(value) =>
+                              onUpdateVariant(index, "unit_type", value as 'weight' | 'piece')
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Type d'unité" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {unitTypes.map((unitType) => (
+                                <SelectItem key={unitType} value={unitType}>
+                                  {unitType === 'weight' ? 'Poids' : 'Pièce'}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        {variant.unit_type === 'weight' && (
+                          <div>
+                            <Label>Grammes</Label>
+                            <Input
+                              type="number"
+                              min="1"
+                              value={variant.grams || ""}
+                              onChange={(e) =>
+                                onUpdateVariant(
+                                  index,
+                                  "grams",
+                                  e.target.value ? parseInt(e.target.value) : null
+                                )
+                              }
+                              placeholder="ex: 1000"
+                            />
+                          </div>
+                        )}
+                        
+                        <div>
+                          <Label>Prix (€)</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={variant.price}
+                            onChange={(e) =>
+                              onUpdateVariant(
+                                index,
+                                "price",
+                                parseFloat(e.target.value) || 0
+                              )
+                            }
+                            required
+                          />
+                        </div>
                       </div>
+
+                      {/* Variant Options */}
                       <div>
-                        <Label>Stock</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          value={variant.stock}
-                          onChange={(e) =>
-                            onUpdateVariant(
-                              index,
-                              "stock",
-                              parseInt(e.target.value) || 0
-                            )
-                          }
-                        />
+                        <div className="flex items-center justify-between mb-2">
+                          <Label>Options du variant</Label>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => addVariantOption(index)}
+                          >
+                            <Plus className="w-3 h-3 mr-1" />
+                            Option
+                          </Button>
+                        </div>
+                        {variant.options?.map((option, optionIndex) => (
+                          <div key={optionIndex} className="flex gap-2 mb-2">
+                            <Input
+                              placeholder="Nom (ex: Couleur)"
+                              value={option.name}
+                              onChange={(e) =>
+                                updateVariantOption(index, optionIndex, 'name', e.target.value)
+                              }
+                            />
+                            <Input
+                              placeholder="Valeur (ex: Rouge)"
+                              value={option.value}
+                              onChange={(e) =>
+                                updateVariantOption(index, optionIndex, 'value', e.target.value)
+                              }
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeVariantOption(index, optionIndex)}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </CardContent>

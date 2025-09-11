@@ -49,21 +49,23 @@ import {
   ChevronLeft,
   ChevronRight,
   CheckCircle,
+  Clock,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { Order } from "./types/order"; // Import your new interface
 
 export default function OrdersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [paymentFilter, setPaymentFilter] = useState("all");
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [viewDialog, setViewDialog] = useState(false);
   const [statusDialog, setStatusDialog] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState(false);
-  const [newStatus, setNewStatus] = useState("");
+  const [newStatus, setNewStatus] = useState<Order['status']>("en_attente");
 
   const queryClient = useQueryClient();
 
@@ -80,7 +82,7 @@ export default function OrdersPage() {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) =>
+    mutationFn: ({ id, status }: { id: string; status: Order['status'] }) =>
       orderService.updateStatus(id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
@@ -94,7 +96,6 @@ export default function OrdersPage() {
     },
   });
 
-  // Updated mutation to handle both delivery and pickup
   const toggleDeliveryMutation = useMutation({
     mutationFn: (id: string) => orderService.toggleDelivery(id),
     onSuccess: () => {
@@ -122,7 +123,7 @@ export default function OrdersPage() {
     },
   });
 
-  const orders = ordersResponse?.data?.data || [];
+  const orders: Order[] = ordersResponse?.data?.data || [];
   const pagination = ordersResponse?.data?.pagination || {
     page: 1,
     limit: 10,
@@ -130,7 +131,7 @@ export default function OrdersPage() {
     pages: 1,
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: Order['status']) => {
     const variants = {
       en_attente: "destructive",
       payé: "default",
@@ -146,13 +147,13 @@ export default function OrdersPage() {
     };
 
     return (
-      <Badge variant={variants[status as keyof typeof variants] as any}>
-        {labels[status as keyof typeof labels] || status}
+      <Badge variant={variants[status] as any}>
+        {labels[status]}
       </Badge>
     );
   };
 
-  const getPickupTypeBadge = (pickupType: string) => {
+  const getPickupTypeBadge = (pickupType: Order['pickupType']) => {
     return pickupType === "delivery" ? (
       <Badge variant="outline" className="flex items-center gap-1">
         <Truck className="w-3 h-3" />
@@ -166,6 +167,24 @@ export default function OrdersPage() {
     );
   };
 
+  const formatDeliveryTime = (deliveryTime?: string) => {
+    if (!deliveryTime) return null;
+    
+    try {
+      // If it's a full ISO string
+      if (deliveryTime.includes('T')) {
+        return format(new Date(deliveryTime), "dd/MM/yyyy à HH:mm", { locale: fr });
+      }
+      // If it's just a time (HH:mm)
+      if (deliveryTime.match(/^\d{2}:\d{2}$/)) {
+        return `aujourd'hui à ${deliveryTime}`;
+      }
+      return deliveryTime;
+    } catch {
+      return deliveryTime;
+    }
+  };
+
   const handleView = async (id: string) => {
     try {
       const response = await orderService.getById(id);
@@ -176,13 +195,13 @@ export default function OrdersPage() {
     }
   };
 
-  const handleUpdateStatus = (order: any) => {
+  const handleUpdateStatus = (order: Order) => {
     setSelectedOrder(order);
     setNewStatus(order.status);
     setStatusDialog(true);
   };
 
-  const handleDelete = (order: any) => {
+  const handleDelete = (order: Order) => {
     setSelectedOrder(order);
     setDeleteDialog(true);
   };
@@ -192,8 +211,7 @@ export default function OrdersPage() {
     updateStatusMutation.mutate({ id: selectedOrder._id, status: newStatus });
   };
 
-  // Updated function to handle both delivery and pickup toggle
-  const handleDeliveryToggle = (order: any) => {
+  const handleDeliveryToggle = (order: Order) => {
     toggleDeliveryMutation.mutate(order._id);
   };
 
@@ -201,7 +219,7 @@ export default function OrdersPage() {
     setCurrentPage(page);
   };
 
-  const getRowClassName = (status: string) => {
+  const getRowClassName = (status: Order['status']) => {
     return status === "en_attente" ? "bg-red-50 dark:bg-red-950/20" : "";
   };
 
@@ -295,6 +313,7 @@ export default function OrdersPage() {
                         <TableHead>N° Commande</TableHead>
                         <TableHead>Client</TableHead>
                         <TableHead>Type de retrait</TableHead>
+                        <TableHead>Heure de livraison</TableHead>
                         <TableHead>Montant</TableHead>
                         <TableHead>Statut</TableHead>
                         <TableHead>Paiement</TableHead>
@@ -304,24 +323,24 @@ export default function OrdersPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {orders.map((order: any) => (
+                      {orders.map((order) => (
                         <TableRow
                           key={order._id}
                           className={getRowClassName(order.status)}
                         >
                           <TableCell className="font-mono text-sm font-medium">
-                            #{order._id?.slice(-8)?.toUpperCase()}
+                            #{order._id.slice(-8).toUpperCase()}
                           </TableCell>
                           <TableCell>
                             <div className="space-y-1">
                               <p className="font-medium">
-                                {order.customer?.fullName}
+                                {order.customer.fullName}
                               </p>
                               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                 <Mail className="w-3 h-3" />
-                                {order.customer?.email}
+                                {order.customer.email}
                               </div>
-                              {order.customer?.phone && (
+                              {order.customer.phone && (
                                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                   <Phone className="w-3 h-3" />
                                   {order.customer.phone}
@@ -333,9 +352,23 @@ export default function OrdersPage() {
                             {getPickupTypeBadge(order.pickupType)}
                           </TableCell>
                           <TableCell>
+                            {order.pickupType === "delivery" && order.deliveryTime ? (
+                              <div className="flex items-center gap-1 text-xs">
+                                <Clock className="w-3 h-3 text-blue-500" />
+                                <span className="text-blue-600 font-medium">
+                                  {formatDeliveryTime(order.deliveryTime)}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">
+                                {order.pickupType === "delivery" ? "Non programmée" : "Retrait magasin"}
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell>
                             <div className="space-y-1">
                               <p className="font-medium">
-                                {order.amount?.toFixed(2)}€
+                                {order.amount.toFixed(2)}€
                               </p>
                               {order.deliveryFee > 0 && (
                                 <p className="text-xs text-muted-foreground">
@@ -363,14 +396,13 @@ export default function OrdersPage() {
                               className="flex items-center gap-1 w-fit"
                             >
                               <CreditCard className="w-3 h-3" />
-                              {order.paymentMethod || "N/A"}
+                              {order.paymentMethod}
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            {/* Updated delivery/pickup status section */}
                             <div className="flex items-center gap-2">
                               <Switch
-                                checked={order.isDelivered || false}
+                                checked={order.isDelivered}
                                 onCheckedChange={() => handleDeliveryToggle(order)}
                                 disabled={toggleDeliveryMutation.isPending}
                               />
@@ -511,7 +543,7 @@ export default function OrdersPage() {
               <DialogTitle className="flex items-center gap-2">
                 <Package className="w-5 h-5" />
                 Détails de la commande #
-                {selectedOrder?._id?.slice(-8)?.toUpperCase()}
+                {selectedOrder?._id.slice(-8).toUpperCase()}
               </DialogTitle>
             </DialogHeader>
             {selectedOrder && (
@@ -530,19 +562,19 @@ export default function OrdersPage() {
                           Nom complet
                         </Label>
                         <p className="text-sm text-muted-foreground">
-                          {selectedOrder.customer?.fullName}
+                          {selectedOrder.customer.fullName}
                         </p>
                       </div>
                       <div>
                         <Label className="text-sm font-medium">Email</Label>
                         <p className="text-sm text-muted-foreground">
-                          {selectedOrder.customer?.email}
+                          {selectedOrder.customer.email}
                         </p>
                       </div>
                       <div>
                         <Label className="text-sm font-medium">Téléphone</Label>
                         <p className="text-sm text-muted-foreground">
-                          {selectedOrder.customer?.phone || "Non renseigné"}
+                          {selectedOrder.customer.phone || "Non renseigné"}
                         </p>
                       </div>
                     </CardContent>
@@ -563,9 +595,7 @@ export default function OrdersPage() {
                           {format(
                             new Date(selectedOrder.createdAt),
                             "dd/MM/yyyy à HH:mm",
-                            {
-                              locale: fr,
-                            }
+                            { locale: fr }
                           )}
                         </p>
                       </div>
@@ -577,6 +607,19 @@ export default function OrdersPage() {
                           {getPickupTypeBadge(selectedOrder.pickupType)}
                         </div>
                       </div>
+                      {selectedOrder.pickupType === "delivery" && selectedOrder.deliveryTime && (
+                        <div>
+                          <Label className="text-sm font-medium">
+                            Heure de livraison programmée
+                          </Label>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Clock className="w-4 h-4 text-blue-500" />
+                            <span className="text-sm font-medium text-blue-600">
+                              {formatDeliveryTime(selectedOrder.deliveryTime)}
+                            </span>
+                          </div>
+                        </div>
+                      )}
                       <div>
                         <Label className="text-sm font-medium">Statut</Label>
                         <div className="mt-1">
@@ -588,7 +631,7 @@ export default function OrdersPage() {
                           Méthode de paiement
                         </Label>
                         <Badge variant="outline" className="mt-1">
-                          {selectedOrder.paymentMethod || "N/A"}
+                          {selectedOrder.paymentMethod}
                         </Badge>
                       </div>
                     </CardContent>
@@ -615,21 +658,25 @@ export default function OrdersPage() {
                   <CardContent>
                     {selectedOrder.pickupType === "delivery" ? (
                       <div className="space-y-3">
-                        <div>
-                          <Label className="text-sm font-medium">Adresse</Label>
-                          <p className="text-sm text-muted-foreground">
-                            {selectedOrder.deliveryAddress?.street}
-                            <br />
-                            {selectedOrder.deliveryAddress?.city}{" "}
-                            {selectedOrder.deliveryAddress?.postalCode}
-                          </p>
-                        </div>
+                        {selectedOrder.deliveryAddress && (
+                          <div>
+                            <Label className="text-sm font-medium">Adresse</Label>
+                            <p className="text-sm text-muted-foreground">
+                              {selectedOrder.deliveryAddress.street}
+                              <br />
+                              {selectedOrder.deliveryAddress.city}{" "}
+                              {selectedOrder.deliveryAddress.postalCode}
+                              <br />
+                              {selectedOrder.deliveryAddress.country}
+                            </p>
+                          </div>
+                        )}
                         <div>
                           <Label className="text-sm font-medium">
                             Frais de livraison
                           </Label>
                           <p className="text-sm font-semibold">
-                            {selectedOrder.deliveryFee?.toFixed(2)}€
+                            {selectedOrder.deliveryFee.toFixed(2)}€
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
@@ -651,21 +698,23 @@ export default function OrdersPage() {
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        <div>
-                          <Label className="text-sm font-medium">
-                            Lieu de retrait
-                          </Label>
-                          <p className="text-sm text-muted-foreground">
-                            <strong>{selectedOrder.pickupLocation?.name}</strong>
-                            <br />
-                            {selectedOrder.pickupLocation?.address}
-                          </p>
-                          {selectedOrder.pickupLocation?.description && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {selectedOrder.pickupLocation.description}
+                        {selectedOrder.pickupLocation && (
+                          <div>
+                            <Label className="text-sm font-medium">
+                              Lieu de retrait
+                            </Label>
+                            <p className="text-sm text-muted-foreground">
+                              <strong>{selectedOrder.pickupLocation.name}</strong>
+                              <br />
+                              {selectedOrder.pickupLocation.address}
                             </p>
-                          )}
-                        </div>
+                            {selectedOrder.pickupLocation.description && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {selectedOrder.pickupLocation.description}
+                              </p>
+                            )}
+                          </div>
+                        )}
                         <div className="flex items-center gap-2">
                           <Label className="text-sm font-medium">
                             Statut de retrait
@@ -704,9 +753,9 @@ export default function OrdersPage() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
-                        {selectedOrder.items.map((item: any, index: number) => (
+                        {selectedOrder.items.map((item, index) => (
                           <div
-                            key={index}
+                            key={item._id || index}
                             className="flex items-center gap-4 p-3 border rounded-lg"
                           >
                             <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
@@ -723,7 +772,10 @@ export default function OrdersPage() {
                             <div className="flex-1">
                               <p className="font-medium">{item.name}</p>
                               <p className="text-sm text-muted-foreground">
-                                {item.variantUnit}
+                                {item.variantUnit} - Variant: {item.variantId}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                Produit ID: {item.productId}
                               </p>
                             </div>
                             <div className="text-right">
@@ -731,12 +783,12 @@ export default function OrdersPage() {
                                 Qté: {item.quantity}
                               </p>
                               <p className="text-sm text-muted-foreground">
-                                {item.price?.toFixed(2)}€ / unité
+                                {item.price.toFixed(2)} {item.currency} / unité
                               </p>
                             </div>
                             <div className="text-right">
                               <p className="font-semibold">
-                                {(item.quantity * item.price).toFixed(2)}€
+                                {(item.quantity * item.price).toFixed(2)} {item.currency}
                               </p>
                             </div>
                           </div>

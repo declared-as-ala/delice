@@ -30,6 +30,16 @@ export const ViewProductDialog = ({
 }: ViewProductDialogProps) => {
   if (!product) return null;
 
+  const formatVariantDisplay = (variant: ProductVariant) => {
+    let display = variant.variant_name || variant.variant_id;
+    if (variant.unit_type === 'weight' && variant.grams) {
+      display += ` (${variant.grams}g)`;
+    } else if (variant.unit_type === 'piece') {
+      display += ' (pièce)';
+    }
+    return display;
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
@@ -37,10 +47,10 @@ export const ViewProductDialog = ({
           <DialogTitle>Détails du produit</DialogTitle>
         </DialogHeader>
         <div className="space-y-6">
-          {product.image && (
+          {product.Image && (
             <div className="flex justify-center">
               <img
-                src={product.image}
+                src={product.Image}
                 alt={product.title}
                 className="w-32 h-32 object-cover rounded-lg"
               />
@@ -65,18 +75,20 @@ export const ViewProductDialog = ({
             </p>
           </div>
 
-          {product.tags && product.tags.length > 0 && (
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Tags</Label>
-              <div className="flex flex-wrap gap-1 mt-1">
-                {product.tags.map((tag: string, index: number) => (
-                  <Badge key={index} variant="secondary" className="text-xs">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
+              <Label>Date de création</Label>
+              <p className="text-sm text-muted-foreground">
+                {new Date(product.createdAt).toLocaleDateString('fr-FR')}
+              </p>
             </div>
-          )}
+            <div>
+              <Label>Dernière mise à jour</Label>
+              <p className="text-sm text-muted-foreground">
+                {new Date(product.updatedAt).toLocaleDateString('fr-FR')}
+              </p>
+            </div>
+          </div>
 
           <div>
             <div className="flex items-center justify-between mb-3">
@@ -89,27 +101,44 @@ export const ViewProductDialog = ({
             <div className="space-y-2">
               {product.variants?.map((variant: ProductVariant, index: number) => (
                 <div
-                  key={variant.id || index}
+                  key={variant.variant_id || index}
                   className="flex items-center justify-between p-3 border rounded-lg"
                 >
-                  <div>
-                    <p className="text-sm font-medium">
-                      {variant.unit}
-                      {variant.isDefault && (
-                        <Badge variant="default" className="ml-2 text-xs">
-                          Par défaut
-                        </Badge>
-                      )}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-sm font-medium">
+                        {formatVariantDisplay(variant)}
+                      </p>
+                      <Badge variant="secondary" className="text-xs">
+                        {variant.unit_type === 'weight' ? 'Poids' : 'Pièce'}
+                      </Badge>
+                    </div>
+                    
+                    {variant.options && variant.options.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {variant.options.map((option, optIndex) => (
+                          <Badge key={optIndex} variant="outline" className="text-xs">
+                            {option.name}: {option.value}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    
+                    <p className="text-xs text-muted-foreground mt-1">
+                      ID: {variant.variant_id}
                     </p>
                   </div>
+                  
                   <div className="flex items-center gap-4">
                     <div className="text-right">
                       <p className="text-sm font-semibold">
                         {variant.price?.toFixed(2)}€
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        Stock: {variant.stock || 0}
-                      </p>
+                      {variant.unit_type === 'weight' && variant.grams && (
+                        <p className="text-xs text-muted-foreground">
+                          {(variant.price / (variant.grams / 1000)).toFixed(2)}€/kg
+                        </p>
+                      )}
                     </div>
                     <div className="flex gap-1">
                       <Button
@@ -119,12 +148,12 @@ export const ViewProductDialog = ({
                       >
                         <Edit className="w-3 h-3" />
                       </Button>
-                      {variant.id && (
+                      {variant.variant_id && (
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() =>
-                            onDeleteVariant(product.id, variant.id!)
+                            onDeleteVariant(product.id, variant.variant_id)
                           }
                         >
                           <Trash2 className="w-3 h-3" />
@@ -134,14 +163,13 @@ export const ViewProductDialog = ({
                   </div>
                 </div>
               ))}
+              
+              {(!product.variants || product.variants.length === 0) && (
+                <div className="text-center py-4 text-muted-foreground">
+                  Aucun variant disponible
+                </div>
+              )}
             </div>
-          </div>
-
-          <div>
-            <Label>Statut</Label>
-            <Badge variant={product.isActive ? "default" : "secondary"}>
-              {product.isActive ? "Actif" : "Inactif"}
-            </Badge>
           </div>
         </div>
       </DialogContent>

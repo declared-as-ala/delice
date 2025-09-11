@@ -23,7 +23,14 @@ export default function ProductsPage() {
   const [categoryFilter, setCategoryFilter] = useState("all");
 
   const [createVariants, setCreateVariants] = useState<ProductVariant[]>([
-    { unit: "pièce", price: 0, stock: 0, isDefault: true },
+    { 
+      variant_id: "", 
+      variant_name: "", 
+      price: 0, 
+      unit_type: "piece",
+      grams: null,
+      options: []
+    },
   ]);
   const [editVariants, setEditVariants] = useState<ProductVariant[]>([]);
 
@@ -55,7 +62,14 @@ export default function ProductsPage() {
   const mutations = useProductMutations(queryClient, {
     onCreateSuccess: () => {
       setCreateVariants([
-        { unit: "pièce", price: 0, stock: 0, isDefault: true },
+        { 
+          variant_id: "", 
+          variant_name: "", 
+          price: 0, 
+          unit_type: "piece",
+          grams: null,
+          options: []
+        },
       ]);
     },
     onEditSuccess: () => setEditVariants([]),
@@ -81,7 +95,7 @@ export default function ProductsPage() {
     "Produits Alimentaires Variés",
   ];
 
-  const units = ["500g", "1kg", "pièce"];
+  const unitTypes: ('weight' | 'piece')[] = ["weight", "piece"];
 
   // ----- Handlers -----
   const handlePageChange = (page: number) => setCurrentPage(page);
@@ -140,11 +154,20 @@ export default function ProductsPage() {
   const addCreateVariant = () =>
     setCreateVariants([
       ...createVariants,
-      { unit: "pièce", price: 0, stock: 0, isDefault: false },
+      { 
+        variant_id: "", 
+        variant_name: "", 
+        price: 0, 
+        unit_type: "piece",
+        grams: null,
+        options: []
+      },
     ]);
+
   const removeCreateVariant = (index: number) =>
     createVariants.length > 1 &&
     setCreateVariants(createVariants.filter((_, i) => i !== index));
+
   const updateCreateVariant = (
     index: number,
     field: keyof ProductVariant,
@@ -152,6 +175,15 @@ export default function ProductsPage() {
   ) => {
     const updated = [...createVariants];
     updated[index] = { ...updated[index], [field]: value };
+    
+    // Auto-generate variant_id if certain fields change
+    if (field === 'variant_name' || field === 'unit_type' || field === 'grams') {
+      const variant = updated[index];
+      const name = variant.variant_name || "default";
+      const unit = variant.unit_type === 'weight' && variant.grams ? `${variant.grams}g` : variant.unit_type;
+      updated[index].variant_id = `${name}-${unit}`.toLowerCase().replace(/\s+/g, '-');
+    }
+    
     setCreateVariants(updated);
   };
 
@@ -159,21 +191,30 @@ export default function ProductsPage() {
   const addEditVariant = () =>
     setEditVariants([
       ...editVariants,
-      { unit: "pièce", price: 0, stock: 0, isDefault: false },
+      { 
+        variant_id: "", 
+        variant_name: "", 
+        price: 0, 
+        unit_type: "piece",
+        grams: null,
+        options: []
+      },
     ]);
+
   const removeEditVariant = (index: number) => {
     const variant = editVariants[index];
-    if (variant.id && dialogs.selectedProduct) {
+    if (variant.variant_id && dialogs.selectedProduct) {
       if (window.confirm("Voulez-vous supprimer ce variant ?")) {
         mutations.deleteVariant.mutate({
           productId: dialogs.selectedProduct.id,
-          variantId: variant.id,
+          variantId: variant.variant_id,
         });
       }
     } else {
       setEditVariants(editVariants.filter((_, i) => i !== index));
     }
   };
+
   const updateEditVariant = (
     index: number,
     field: keyof ProductVariant,
@@ -181,6 +222,15 @@ export default function ProductsPage() {
   ) => {
     const updated = [...editVariants];
     updated[index] = { ...updated[index], [field]: value };
+    
+    // Auto-generate variant_id if certain fields change
+    if (field === 'variant_name' || field === 'unit_type' || field === 'grams') {
+      const variant = updated[index];
+      const name = variant.variant_name || "default";
+      const unit = variant.unit_type === 'weight' && variant.grams ? `${variant.grams}g` : variant.unit_type;
+      updated[index].variant_id = `${name}-${unit}`.toLowerCase().replace(/\s+/g, '-');
+    }
+    
     setEditVariants(updated);
   };
 
@@ -245,7 +295,7 @@ export default function ProductsPage() {
           dialogs={dialogs}
           mutations={mutations}
           categories={categories}
-          units={units}
+          unitTypes={unitTypes}
           createVariants={createVariants}
           editVariants={editVariants}
           onAddCreateVariant={addCreateVariant}

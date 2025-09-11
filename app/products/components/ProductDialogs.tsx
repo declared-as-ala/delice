@@ -11,7 +11,7 @@ interface ProductDialogsProps {
   dialogs: any;
   mutations: any;
   categories: string[];
-  units: string[];
+  unitTypes: ('weight' | 'piece')[];
   createVariants: ProductVariant[];
   editVariants: ProductVariant[];
   onAddCreateVariant: () => void;
@@ -36,7 +36,7 @@ export const ProductDialogs = ({
   dialogs,
   mutations,
   categories,
-  units,
+  unitTypes,
   createVariants,
   editVariants,
   onAddCreateVariant,
@@ -56,7 +56,7 @@ export const ProductDialogs = ({
         onSubmit={mutations.createProduct.mutate}
         isLoading={mutations.createProduct.isPending}
         categories={categories}
-        units={units}
+        unitTypes={unitTypes}
         variants={createVariants}
         onAddVariant={onAddCreateVariant}
         onRemoveVariant={onRemoveCreateVariant}
@@ -70,7 +70,7 @@ export const ProductDialogs = ({
         isLoading={mutations.updateProduct.isPending}
         product={dialogs.selectedProduct}
         categories={categories}
-        units={units}
+        unitTypes={unitTypes}
         variants={editVariants}
         onAddVariant={onAddEditVariant}
         onRemoveVariant={onRemoveEditVariant}
@@ -100,7 +100,7 @@ export const ProductDialogs = ({
         onSubmit={mutations.addVariant.mutate}
         isLoading={mutations.addVariant.isPending}
         product={dialogs.selectedProduct}
-        units={units}
+        unitTypes={unitTypes}
       />
 
       <EditVariantDialog
@@ -110,7 +110,7 @@ export const ProductDialogs = ({
         isLoading={mutations.updateVariant.isPending}
         product={dialogs.selectedProduct}
         variant={dialogs.selectedVariant}
-        units={units}
+        unitTypes={unitTypes}
       />
     </>
   );
