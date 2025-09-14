@@ -54,7 +54,7 @@ import {
 import toast from "react-hot-toast";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Order } from "./types/order"; // Import your new interface
+import { Order } from "../products/types/order";
 
 export default function OrdersPage() {
   const [currentPage, setCurrentPage] = useState(1);
