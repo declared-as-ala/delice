@@ -857,7 +857,8 @@ export default function OrdersPage() {
               </div>
               <div>
                 <Label>Nouveau statut</Label>
-                <Select value={newStatus} onValueChange={setNewStatus}>
+         <Select value={newStatus} onValueChange={(value) => setNewStatus(value as Order['status'])}>
+
                   <SelectTrigger>
                     <SelectValue placeholder="Sélectionner un statut" />
                   </SelectTrigger>
