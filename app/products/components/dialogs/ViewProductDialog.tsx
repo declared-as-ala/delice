@@ -52,7 +52,7 @@ export const ViewProductDialog = ({
               <img
                 src={product.Image}
                 alt={product.title}
-                className="w-32 h-32 object-cover rounded-lg"
+                className="w-64 h-64 object-cover rounded-lg shadow-lg"
               />
             </div>
           )}

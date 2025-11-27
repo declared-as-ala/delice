@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Edit, Eye, Package, Plus, Trash2 } from "lucide-react";
 import { Product } from "../types/product";
+import { StockAvailabilityCell } from "./StockAvailabilityCell";
 
 interface ProductTableProps {
   products: Product[];
@@ -47,6 +48,7 @@ export const ProductTable = ({
             <TableHead>Catégorie</TableHead>
             <TableHead>Prix min</TableHead>
             <TableHead>Variants</TableHead>
+            <TableHead>Stock / Disponibilité</TableHead>
             <TableHead>Date de création</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -62,7 +64,7 @@ export const ProductTable = ({
               <TableRow key={product.id}>
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    <div className="w-24 h-20 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
+                    <div className="w-32 h-32 rounded-lg bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
                       {product.Image ? (
                         <img
                           src={product.Image}
@@ -70,7 +72,7 @@ export const ProductTable = ({
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <Package className="w-5 h-5 text-muted-foreground" />
+                        <Package className="w-8 h-8 text-muted-foreground" />
                       )}
                     </div>
                     <div>
@@ -101,6 +103,13 @@ export const ProductTable = ({
                       <Plus className="w-3 h-3" />
                     </Button>
                   </div>
+                </TableCell>
+                <TableCell>
+                  <StockAvailabilityCell
+                    productId={product.id}
+                    initialStock={product.stock ?? 0}
+                    initialDisponible={product.disponible ?? true}
+                  />
                 </TableCell>
                 <TableCell>
                   <span className="text-sm text-muted-foreground">

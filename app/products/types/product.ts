@@ -14,9 +14,8 @@ export interface Product {
   category: string; // defaults to 'Uncategorized'
   variants: ProductVariant[]; // list of variants
   description: string;
-
-
-
+  stock: number; // stock quantity
+  disponible: boolean; // availability status
   createdAt: string; // timestamp
   updatedAt: string; // timestamp
 }

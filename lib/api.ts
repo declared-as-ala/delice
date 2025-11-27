@@ -33,7 +33,7 @@ interface LogoutResponse {
   message: string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://backend-r0vc.onrender.com";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://backend-silk-kappa-59.vercel.app/";
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -319,6 +319,16 @@ export const productService = {
     ),
   deleteVariant: (productId: string, variantId: string) =>
     apiClient.delete(`/api/admin/products/${productId}/variants/${variantId}`),
+
+  // ----- Stock & Availability -----
+  updateStock: (productId: string, stock: number) =>
+    apiClient.patch(`/api/admin/products/${productId}/stock`, { stock }),
+  
+  updateAvailability: (productId: string, disponible: boolean) =>
+    apiClient.patch(`/api/admin/products/${productId}/availability`, { disponible }),
+  
+  updateStockAndAvailability: (productId: string, stock: number, disponible: boolean) =>
+    apiClient.patch(`/api/admin/products/${productId}/stock-availability`, { stock, disponible }),
 };
 // ========================= STATS SERVICE =========================
 export const statsService = {
