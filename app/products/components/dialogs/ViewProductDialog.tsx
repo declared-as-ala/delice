@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Edit, Plus, Trash2 } from "lucide-react";
 import { Product, ProductVariant } from "../../types/product";
+import { ProductImage } from "@/components/ProductImage";
 
 interface ViewProductDialogProps {
   open: boolean;
@@ -47,15 +48,15 @@ export const ViewProductDialog = ({
           <DialogTitle>Détails du produit</DialogTitle>
         </DialogHeader>
         <div className="space-y-6">
-          {product.Image && (
-            <div className="flex justify-center">
-              <img
+          <div className="flex justify-center">
+            <div className="w-64 h-64 rounded-lg shadow-lg overflow-hidden">
+              <ProductImage
                 src={product.Image}
                 alt={product.title}
-                className="w-64 h-64 object-cover rounded-lg shadow-lg"
+                className="w-full h-full object-cover"
               />
             </div>
-          )}
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>

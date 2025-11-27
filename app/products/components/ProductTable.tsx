@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Edit, Eye, Package, Plus, Trash2 } from "lucide-react";
 import { Product } from "../types/product";
 import { StockAvailabilityCell } from "./StockAvailabilityCell";
+import { ProductImage } from "@/components/ProductImage";
 
 interface ProductTableProps {
   products: Product[];
@@ -64,16 +65,12 @@ export const ProductTable = ({
               <TableRow key={product.id}>
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    <div className="w-32 h-32 rounded-lg bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
-                      {product.Image ? (
-                        <img
-                          src={product.Image}
-                          alt={product.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <Package className="w-8 h-8 text-muted-foreground" />
-                      )}
+                    <div className="w-32 h-32 rounded-lg overflow-hidden flex-shrink-0">
+                      <ProductImage
+                        src={product.Image}
+                        alt={product.title}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                     <div>
                       <p className="font-medium">{product.title}</p>
